@@ -1,8 +1,8 @@
 from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 import shutil
 
 app = FastAPI()
-from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
@@ -14,10 +14,6 @@ app.add_middleware(
 
 def detect_ai_image(path):
     return "✅ Likely Real Image"
-
-@app.get("/")
-def home():
-    return {"message": "API is running 🚀"}
 
 @app.post("/detect/")
 async def detect(file: UploadFile = File(...)):
