@@ -1,30 +1,48 @@
-from transformers import AutoImageProcessor, SiglipForImageClassification
-from PIL import Image
-import torch
+from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
+import shutil
+import cv2
+import numpy as np
 
-model_name = "prithivMLmods/deepfake-detector-model-v1"
+app = FastAPI()
 
-model = SiglipForImageClassification.from_pretrained(model_name)
-processor = AutoImageProcessor.from_pretrained(model_name)
+# Enable CORS (for frontend)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+@app.get("/")
+def home():
+    return {"message": "working 🚀"}
+
+# AI detection function (fast method)
 def detect_ai_image(path):
-    image = Image.open(path).convert("RGB")
-    inputs = processor(images=image, return_tensors="pt")
+    img = cv2.imread(path)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    with torch.no_grad():
-        outputs = model(**inputs)
-        probs = torch.nn.functional.softmax(outputs.logits, dim=1)[0]
+    edges = cv2.Canny(gray, 100, 200)
+    variance = np.var(gray)
+    edge_density = np.sum(edges) / (edges.shape[0] * edges.shape[1])
 
-    fake_prob = probs[0].item()
-    real_prob = probs[1].item()
+    score = (variance * 0.6) + (edge_density * 1000 * 0.4)
+    confidence = int(min(max(score / 10, 50), 95))
 
-    if fake_prob > real_prob:
-        return {
-            "label": "AI Generated",
-            "confidence": round(fake_prob * 100)
-        }
+    if score < 500:
+        return {"label": "AI Generated", "confidence": confidence}
     else:
-        return {
-            "label": "Real Image",
-            "confidence": round(real_prob * 100)
-        }
+        return {"label": "Real Image", "confidence": confidence}
+
+@app.post("/detect/")
+async def detect(file: UploadFile = File(...)):
+    file_path = f"temp_{file.filename}"
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    result = detect_ai_image(file_path)
+
+    return result

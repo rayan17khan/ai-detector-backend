@@ -72,3 +72,31 @@ export default function Home() {
     </main>
   );
 }
+{result && (
+  <div style={{ marginTop: "25px" }}>
+    <h3>
+      {result.label} ({result.confidence}%)
+    </h3>
+
+    {/* Progress Bar */}
+    <div
+      style={{
+        width: "100%",
+        height: "12px",
+        background: "#333",
+        borderRadius: "10px",
+        overflow: "hidden",
+        marginTop: "10px",
+      }}
+    >
+      <div
+        style={{
+          width: `${result.confidence}%`,
+          height: "100%",
+          background:
+            result.label === "AI Generated"
+              ? "linear-gradient(90deg, #ef4444, #f871
+        }
+      }
+    }
+  
