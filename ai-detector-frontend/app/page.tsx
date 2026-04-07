@@ -1,28 +1,74 @@
-const uploadFile = async () => {
-  try {
-    if (!file) return alert("Select a file first");
+"use client";
 
-    const formData = new FormData();
-    formData.append("file", file);
+import { useState } from "react";
 
-    const res = await fetch(
-      "https://ai-detector-backend-866l.onrender.com/detect/",
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
+export default function Home() {
+  const [file, setFile] = useState<File | null>(null);
+  const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    if (!res.ok) {
-      throw new Error("Server error");
+  const uploadFile = async () => {
+    try {
+      if (!file) return alert("Select a file first");
+
+      setLoading(true);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(
+        "https://ai-detector-backend-866l.onrender.com/detect/",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = await res.json();
+      setResult(data.result);
+    } catch (err) {
+      console.error(err);
+      alert("Error connecting to backend");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const data = await res.json();
-    console.log(data);
+  return (
+    <main
+      style={{
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#0f172a",
+        color: "white",
+      }}
+    >
+      <div
+        style={{
+          padding: "40px",
+          borderRadius: "20px",
+          background: "rgba(255,255,255,0.05)",
+          textAlign: "center",
+          width: "350px",
+        }}
+      >
+        <h1>AI Detector 🚀</h1>
 
-    setResult(data.result);
-  } catch (err) {
-    console.error(err);
-    alert("Error connecting to backend");
-  }
-};
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+        />
+
+        <br /><br />
+
+        <button onClick={uploadFile}>
+          {loading ? "Processing..." : "Upload"}
+        </button>
+
+        <p>{result}</p>
+      </div>
+    </main>
+  );
+}

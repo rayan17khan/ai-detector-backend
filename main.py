@@ -1,27 +1,30 @@
-from fastapi import FastAPI, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
-import shutil
+from transformers import AutoImageProcessor, SiglipForImageClassification
+from PIL import Image
+import torch
 
-app = FastAPI()
+model_name = "prithivMLmods/deepfake-detector-model-v1"
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+model = SiglipForImageClassification.from_pretrained(model_name)
+processor = AutoImageProcessor.from_pretrained(model_name)
 
 def detect_ai_image(path):
-    return "✅ Likely Real Image"
+    image = Image.open(path).convert("RGB")
+    inputs = processor(images=image, return_tensors="pt")
 
-@app.post("/detect/")
-async def detect(file: UploadFile = File(...)):
-    file_path = f"temp_{file.filename}"
+    with torch.no_grad():
+        outputs = model(**inputs)
+        probs = torch.nn.functional.softmax(outputs.logits, dim=1)[0]
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    fake_prob = probs[0].item()
+    real_prob = probs[1].item()
 
-    result = detect_ai_image(file_path)
-
-    return {"result": result}
+    if fake_prob > real_prob:
+        return {
+            "label": "AI Generated",
+            "confidence": round(fake_prob * 100)
+        }
+    else:
+        return {
+            "label": "Real Image",
+            "confidence": round(real_prob * 100)
+        }
