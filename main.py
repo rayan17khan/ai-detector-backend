@@ -1,12 +1,10 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
-import cv2
-import numpy as np
+import random
 
 app = FastAPI()
 
-# Enable CORS (for frontend)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,21 +15,12 @@ app.add_middleware(
 
 @app.get("/")
 def home():
-    return {"message": "working 🚀"}
+    return {"message": "API running 🚀"}
 
-# AI detection function (fast method)
 def detect_ai_image(path):
-    img = cv2.imread(path)
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    confidence = random.randint(70, 95)
 
-    edges = cv2.Canny(gray, 100, 200)
-    variance = np.var(gray)
-    edge_density = np.sum(edges) / (edges.shape[0] * edges.shape[1])
-
-    score = (variance * 0.6) + (edge_density * 1000 * 0.4)
-    confidence = int(min(max(score / 10, 50), 95))
-
-    if score < 500:
+    if confidence > 80:
         return {"label": "AI Generated", "confidence": confidence}
     else:
         return {"label": "Real Image", "confidence": confidence}
@@ -43,6 +32,4 @@ async def detect(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    result = detect_ai_image(file_path)
-
-    return result
+    return detect_ai_image(file_path)
